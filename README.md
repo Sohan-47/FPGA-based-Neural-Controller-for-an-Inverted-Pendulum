@@ -260,12 +260,62 @@ This cart-pole implementation establishes the foundation for more advanced contr
 - Fixed-point arithmetic validated here scales to embedded flight computers
 - Same training → hardware pipeline applies to TVC with increased complexity
 
-This project demonstrates:
-- **End-to-end ML deployment**: From training to hardware implementation
-- **Fixed-point quantization**: Practical techniques for embedded ML
-- **Hardware verification**: Physics-in-the-loop testing methodology
-- **Control systems**: Real-time feedback control implementation
-- **FPGA design**: Direct Verilog implementation (no HLS black boxes)
+## Why did I pick this approach?
+
+### Compared to Traditional Control Methods
+
+**Classical PID Control:**
+
+- ✅ Simple to implement and tune
+- ❌ Requires manual gain tuning for each system configuration
+- ❌ Poor performance with nonlinear dynamics
+- ❌ Limited adaptability to changing conditions
+
+**Linear Quadratic Regulator (LQR):**
+- ✅ Optimal for linearized systems
+- ❌ Requires accurate system model
+- ❌ Performance degrades far from equilibrium point
+- ❌ No learning capability
+
+**This Neural Network Approach:**
+- ✅ Learns optimal policy through interaction (model-free)
+- ✅ Handles nonlinear dynamics naturally
+- ✅ Generalizes across different initial conditions
+- ✅ Can be retrained for different system parameters
+- ⚠️ Requires training data and computational resources upfront
+
+### Compared to Software-Only ML Implementations
+
+**Microcontroller (Arduino/ESP32) Implementations:**
+- ✅ Cheap and accessible (~$5-30)
+- ✅ Easy to prototype
+- ❌ Sequential execution (20-50 Hz typical for NN inference)
+- ❌ Limited by CPU clock and floating-point operations
+- ❌ Power consumption higher for same performance
+
+**FPGA Implementation (This Project):**
+- ✅ Parallel computation (all neurons compute simultaneously)
+- ✅ Deterministic latency (<100 ns inference possible)
+- ✅ Scalable to kHz control rates with same architecture
+- ✅ Ultra-low power (mW range for small networks)
+- ✅ Single-cycle throughput possible with pipelining
+- ⚠️ Higher initial development complexity
+- ⚠️ Requires hardware synthesis knowledge
+
+**Comparison Table:**
+
+| Metric | Arduino (AVR) | ESP32 | Raspberry Pi | FPGA (This Work) |
+|--------|---------------|-------|--------------|------------------|
+| **Inference Time** | ~5-10 ms | ~1-2 ms | ~0.5 ms | ~10-100 ns* |
+| **Control Rate** | ~20-50 Hz | ~100 Hz | ~500 Hz | ~1-10 kHz* |
+| **Power (Inference)** | ~100 mW | ~200 mW | ~2.5 W | ~10-50 mW |
+| **Determinism** | Poor | Poor | Very Poor | Excellent |
+| **Latency Jitter** | ±5 ms | ±2 ms | ±10 ms | <1 ns |
+| **Scalability** | Limited | Limited | Moderate | Excellent |
+
+*With optimized implementation and pipelining
+
+Wondering where the equations popped out from? Say no more, here you go!
 
 # Mathematical Derivations: Inverted Pendulum Dynamics
 
