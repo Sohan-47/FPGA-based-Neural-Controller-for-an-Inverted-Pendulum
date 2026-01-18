@@ -267,6 +267,268 @@ This project demonstrates:
 - **Control systems**: Real-time feedback control implementation
 - **FPGA design**: Direct Verilog implementation (no HLS black boxes)
 
+# Mathematical Derivations: Inverted Pendulum Dynamics
+
+## System Description
+
+The cart-pole (inverted pendulum) system consists of:
+- A cart of mass $M$ that moves horizontally along a frictionless track
+- A pole of mass $m$ and length $\ell$ hinged to the cart
+- An external horizontal force $F$ applied to the cart
+
+**State Variables:**
+- $x$ - Cart position (m)
+- $\dot{x}$ - Cart velocity (m/s)
+- $\theta$ - Pole angle from vertical (rad, positive = clockwise)
+- $\dot{\theta}$ - Pole angular velocity (rad/s)
+
+**System Parameters:**
+| Parameter | Symbol | Value | Units |
+|-----------|--------|-------|-------|
+| Cart mass | $M$ | 1.0 | kg |
+| Pole mass | $m$ | 0.1 | kg |
+| Pole length (half) | $\ell$ | 0.5 | m |
+| Gravity | $g$ | 9.8 | m/s² |
+| Timestep | $\tau$ | 0.02 | s |
+
+## Lagrangian Mechanics Derivation
+
+### Defining Coordinates :
+
+Position of cart: $(x, 0)$
+
+Position of pole center of mass:
+$$x_p = x + \ell \sin\theta$$
+$$y_p = \ell \cos\theta$$
+
+### Kinetic Energy :
+
+Cart kinetic energy:
+$$T_{\text{cart}} = \frac{1}{2}M\dot{x}^2$$
+
+Pole velocity components:
+$$\dot{x}_p = \dot{x} + \ell\dot{\theta}\cos\theta$$
+$$\dot{y}_p = -\ell\dot{\theta}\sin\theta$$
+
+Pole kinetic energy:
+$$T_{\text{pole}} = \frac{1}{2}m(\dot{x}_p^2 + \dot{y}_p^2)$$
+
+$$= \frac{1}{2}m\left[(\dot{x} + \ell\dot{\theta}\cos\theta)^2 + (\ell\dot{\theta}\sin\theta)^2\right]$$
+
+$$= \frac{1}{2}m\left[\dot{x}^2 + 2\dot{x}\ell\dot{\theta}\cos\theta + \ell^2\dot{\theta}^2\cos^2\theta + \ell^2\dot{\theta}^2\sin^2\theta\right]$$
+
+$$= \frac{1}{2}m\left[\dot{x}^2 + 2\dot{x}\ell\dot{\theta}\cos\theta + \ell^2\dot{\theta}^2\right]$$
+
+Total kinetic energy:
+$$T = T_{\text{cart}} + T_{\text{pole}} = \frac{1}{2}(M + m)\dot{x}^2 + m\ell\dot{x}\dot{\theta}\cos\theta + \frac{1}{2}m\ell^2\dot{\theta}^2$$
+
+### Potential Energy :
+
+Taking the track as reference ($y = 0$):
+$$V = mgy_p = mg\ell\cos\theta$$
+
+### Lagrangian :
+
+$$\mathcal{L} = T - V = \frac{1}{2}(M + m)\dot{x}^2 + m\ell\dot{x}\dot{\theta}\cos\theta + \frac{1}{2}m\ell^2\dot{\theta}^2 - mg\ell\cos\theta$$
+
+### Euler-Lagrange Equations
+
+For generalized coordinate $x$:
+$$\frac{d}{dt}\frac{\partial\mathcal{L}}{\partial\dot{x}} - \frac{\partial\mathcal{L}}{\partial x} = F$$
+
+$$\frac{\partial\mathcal{L}}{\partial\dot{x}} = (M + m)\dot{x} + m\ell\dot{\theta}\cos\theta$$
+
+$$\frac{d}{dt}\frac{\partial\mathcal{L}}{\partial\dot{x}} = (M + m)\ddot{x} + m\ell\ddot{\theta}\cos\theta - m\ell\dot{\theta}^2\sin\theta$$
+
+$$\frac{\partial\mathcal{L}}{\partial x} = 0$$
+
+**First equation of motion:**
+$$(M + m)\ddot{x} + m\ell\ddot{\theta}\cos\theta - m\ell\dot{\theta}^2\sin\theta = F$$
+
+For generalized coordinate $\theta$:
+$$\frac{d}{dt}\frac{\partial\mathcal{L}}{\partial\dot{\theta}} - \frac{\partial\mathcal{L}}{\partial\theta} = 0$$
+
+$$\frac{\partial\mathcal{L}}{\partial\dot{\theta}} = m\ell\dot{x}\cos\theta + m\ell^2\dot{\theta}$$
+
+$$\frac{d}{dt}\frac{\partial\mathcal{L}}{\partial\dot{\theta}} = m\ell\ddot{x}\cos\theta - m\ell\dot{x}\dot{\theta}\sin\theta + m\ell^2\ddot{\theta}$$
+
+$$\frac{\partial\mathcal{L}}{\partial\theta} = -m\ell\dot{x}\dot{\theta}\sin\theta + mg\ell\sin\theta$$
+
+**Second equation of motion:**
+$$m\ell\ddot{x}\cos\theta + m\ell^2\ddot{\theta} = mg\ell\sin\theta$$
+
+Simplifying:
+$$\ell\ddot{x}\cos\theta + \ell^2\ddot{\theta} = g\ell\sin\theta$$
+
+$$\ddot{x}\cos\theta + \ell\ddot{\theta} = g\sin\theta \quad \text{...(2)}$$
+
+## Solving for Accelerations
+
+From equation (1):
+$$(M + m)\ddot{x} + m\ell\ddot{\theta}\cos\theta = F + m\ell\dot{\theta}^2\sin\theta$$
+
+Let $M_{\text{total}} = M + m$. Define:
+$$\text{temp} = \frac{F + m\ell\dot{\theta}^2\sin\theta}{M_{\text{total}}}$$
+
+Then:
+$$\ddot{x} = \text{temp} - \frac{m\ell}{M_{\text{total}}}\ddot{\theta}\cos\theta \quad \text{...(3)}$$
+
+Substitute (3) into (2):
+$$\left(\text{temp} - \frac{m\ell}{M_{\text{total}}}\ddot{\theta}\cos\theta\right)\cos\theta + \ell\ddot{\theta} = g\sin\theta$$
+
+$$\text{temp}\cos\theta - \frac{m\ell}{M_{\text{total}}}\ddot{\theta}\cos^2\theta + \ell\ddot{\theta} = g\sin\theta$$
+
+$$\ddot{\theta}\left(\ell - \frac{m\ell\cos^2\theta}{M_{\text{total}}}\right) = g\sin\theta - \text{temp}\cos\theta$$
+
+$$\ddot{\theta}\left(\frac{\ell M_{\text{total}} - m\ell\cos^2\theta}{M_{\text{total}}}\right) = g\sin\theta - \text{temp}\cos\theta$$
+
+**Angular acceleration:**
+$$\boxed{\ddot{\theta} = \frac{g\sin\theta - \text{temp}\cos\theta}{\ell\left(1 - \frac{m\cos^2\theta}{M_{\text{total}}}\right)} = \frac{g\sin\theta - \text{temp}\cos\theta}{\ell\left(\frac{4}{3} - \frac{m\cos^2\theta}{M_{\text{total}}}\right)}}$$
+
+Note: The factor $\frac{4}{3}$ comes from considering the pole as a uniform rod with moment of inertia $I = \frac{1}{3}m\ell^2$ about its end.
+
+**Linear acceleration:**
+$$\boxed{\ddot{x} = \text{temp} - \frac{m\ell\ddot{\theta}\cos\theta}{M_{\text{total}}}}$$
+
+## Equations of Motion (Final Form)
+
+Let:
+- $\text{temp} = \dfrac{F + m\ell\dot{\theta}^2\sin\theta}{M + m}$
+
+Then:
+
+$$\ddot{\theta} = \frac{g\sin\theta - \cos\theta \cdot \text{temp}}{\ell\left(\frac{4}{3} - \frac{m\cos^2\theta}{M+m}\right)}$$
+
+$$\ddot{x} = \text{temp} - \frac{m\ell\ddot{\theta}\cos\theta}{M+m}$$
+
+**State-space form:**
+$$\dot{x} = v_x$$
+$$\dot{v}_x = \ddot{x}$$
+$$\dot{\theta} = \omega$$
+$$\dot{\omega} = \ddot{\theta}$$
+
+## Linearization About Equilibrium
+
+For stability analysis, linearize about $\theta = 0$ (upright position), $\dot{\theta} = 0$, $\ddot{x} = 0$.
+
+**Small angle approximations:**
+$$\sin\theta \approx \theta, \quad \cos\theta \approx 1, \quad \dot{\theta}^2 \approx 0$$
+
+Linearized equations:
+$$\text{temp} \approx \frac{F}{M + m}$$
+
+$$\ddot{\theta} \approx \frac{g\theta - \frac{F}{M+m}}{\ell\left(\frac{4}{3} - \frac{m}{M+m}\right)}$$
+
+Let $\alpha = \dfrac{1}{\ell\left(\frac{4}{3} - \frac{m}{M+m}\right)}$
+
+$$\ddot{\theta} = \alpha g\theta - \alpha\frac{F}{M+m}$$
+
+$$\ddot{x} = \frac{F}{M+m} - \frac{m\ell\ddot{\theta}}{M+m}$$
+
+**State-space representation:**
+$$\mathbf{\dot{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}u$$
+
+Where $\mathbf{x} = [x, \dot{x}, \theta, \dot{\theta}]^T$ and $u = F$
+
+$$\mathbf{A} = \begin{bmatrix}
+0 & 1 & 0 & 0 \\
+0 & 0 & -\frac{mg}{M} & 0 \\
+0 & 0 & 0 & 1 \\
+0 & 0 & \frac{g(M+m)}{M\ell} & 0
+\end{bmatrix}, \quad \mathbf{B} = \begin{bmatrix}
+0 \\
+\frac{1}{M} \\
+0 \\
+-\frac{1}{M\ell}
+\end{bmatrix}$$
+
+(Note: Exact form of $\mathbf{A}$ depends on accounting for coupled dynamics)
+
+## Stability Analysis via Laplace Transform
+
+Even though it's blatantly obvious that the given system is inherently unstable, if you are a fan of laplace transform and classical mechanics 
+then why not go ahead and try it out?
+
+Taking Laplace transform of the linearized angular equation (with $F = 0$):
+
+$$s^2\Theta(s) = \alpha g \Theta(s)$$
+
+$$(s^2 - \alpha g)\Theta(s) = 0$$
+
+**Characteristic equation:**
+$$s^2 - \alpha g = 0$$
+
+$$s = \pm\sqrt{\alpha g}$$
+
+Since $\alpha > 0$ and $g > 0$:
+
+$$s_1 = +\sqrt{\alpha g} > 0 \quad \text{(unstable pole)}$$
+$$s_2 = -\sqrt{\alpha g} < 0 \quad \text{(stable pole)}$$
+
+**Conclusion:** The system has a pole in the right-half plane, making the uncontrolled inverted pendulum **inherently unstable**.
+
+Any initial deviation from $\theta = 0$ will grow exponentially:
+$$\theta(t) = \theta_0 e^{\sqrt{\alpha g}t}$$
+
+**This necessitates active feedback control.**
+
+## Numerical Integration (Euler Method)
+
+For simulation, discrete-time update with timestep $\tau = 0.02$ s:
+
+$$x_{k+1} = x_k + \tau \cdot \dot{x}_k$$
+$$\dot{x}_{k+1} = \dot{x}_k + \tau \cdot \ddot{x}_k$$
+$$\theta_{k+1} = \theta_k + \tau \cdot \dot{\theta}_k$$
+$$\dot{\theta}_{k+1} = \dot{\theta}_k + \tau \cdot \ddot{\theta}_k$$
+
+Where $\ddot{x}_k$ and $\ddot{\theta}_k$ are computed from the nonlinear equations above using the state at time $k$.
+
+## Implementation in Code
+
+The `update_physics()` function in `testBenchS.py` implements these equations:
+
+```python
+def update_physics(state, force_int, step_idx):
+    x, x_dot, theta, theta_dot = state
+    
+    # Convert fixed-point force to physical units
+    action_val = force_int / 2048.0  # Q11 scaling
+    action_val = max(min(action_val, 1.0), -1.0)  # Clip
+    force = action_val * 10.0  # Scale to ±10N
+    
+    # Compute temp = (F + m*ℓ*θ̇²*sin(θ)) / (M + m)
+    costheta = np.cos(theta)
+    sintheta = np.sin(theta)
+    temp = (force + polemass_length * theta_dot**2 * sintheta) / total_mass
+    
+    # Compute angular acceleration
+    thetaacc = (g * sintheta - costheta * temp) / \
+               (length * (4.0/3.0 - masspole * costheta**2 / total_mass))
+    
+    # Compute linear acceleration
+    xacc = temp - polemass_length * thetaacc * costheta / total_mass
+    
+    # Euler integration
+    x = x + tau * x_dot
+    x_dot = x_dot + tau * xacc
+    theta = theta + tau * theta_dot
+    theta_dot = theta_dot + tau * thetaacc
+    
+    return [x, x_dot, theta, theta_dot]
+```
+
+## Energy Considerations
+
+Total mechanical energy of the system:
+$$E = \frac{1}{2}(M+m)\dot{x}^2 + m\ell\dot{x}\dot{\theta}\cos\theta + \frac{1}{2}m\ell^2\dot{\theta}^2 + mg\ell\cos\theta$$
+
+At upright equilibrium ($\theta = 0$, all velocities zero):
+$$E_{\text{eq}} = mg\ell$$
+
+For the pole to remain upright, the controller must manage energy injection/dissipation to maintain $E \approx E_{\text{eq}}$ while preventing excessive cart displacement.
+
+**Note:** These equations match the implementation in both `smoothControl.py` (training environment) and `testBenchS.py` (hardware verification), ensuring consistency between training and deployment.
+
 
 ## Contributing
 
